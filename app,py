@@ -1,0 +1,29 @@
+from flask import Flask, request, jsonify
+from pyspark.ml import PipelineModel
+from pyspark.sql import SparkSession
+
+# إنشاء Flask app
+app = Flask(__name__)
+
+# إنشاء Spark session
+spark = SparkSession.builder.appName("ModelDeployment").getOrCreate()
+
+# تحميل الموديل
+model = PipelineModel.load("lr_model")  # المسار حسب مكان الموديل
+
+@app.route('/')
+def home():
+    return "✅ Model Deployment is Running!"
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()
+    # تحويل JSON إلى DataFrame
+    df = spark.createDataFrame([data])
+    # تطبيق الموديل على الداتا
+    predictions = model.transform(df)
+    result = predictions.select("prediction").collect()[0][0]
+    return jsonify({'prediction': float(result)})
+
+if name == 'main':
+    app.run(debug=True)
